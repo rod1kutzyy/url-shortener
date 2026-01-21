@@ -1,0 +1,6 @@
+env: "" # local, dev, prod
+storage_path: "path"
+http_server:
+  address: "host:port"
+  timeout: 4s
+  idle_timeout: 60s
