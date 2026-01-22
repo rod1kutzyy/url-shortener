@@ -2,9 +2,14 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rod1kutzyy/url-shortener/internal/config"
+	"github.com/rod1kutzyy/url-shortener/internal/http-server/handlers/url/save"
+	"github.com/rod1kutzyy/url-shortener/internal/lib/logger/handlers/slogpretty"
 	"github.com/rod1kutzyy/url-shortener/internal/lib/logger/sl"
 	"github.com/rod1kutzyy/url-shortener/internal/storage/sqlite"
 )
@@ -19,17 +24,37 @@ func main() {
 	cfg := config.MustLoad()
 
 	logger := setupLogger(cfg.Env)
-	logger.Info("starting url-shortener", slog.String("env", cfg.Env))
 
-	_, err := sqlite.New(cfg.StoragePath)
+	storage, err := sqlite.New(cfg.StoragePath)
 	if err != nil {
 		logger.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
 
-	// TODO init router
+	router := chi.NewRouter()
 
-	// TODO run server
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
+	router.Post("/url", save.New(logger, storage))
+
+	logger.Info("starting server", slog.String("address", cfg.HTTPServer.Address))
+
+	srv := &http.Server{
+		Addr:         cfg.HTTPServer.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Error("failed to start server")
+	}
+
+	logger.Info("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
@@ -37,7 +62,7 @@ func setupLogger(env string) *slog.Logger {
 
 	switch env {
 	case envLocal:
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger = setupPrettySlog()
 	case envDev:
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
@@ -45,4 +70,16 @@ func setupLogger(env string) *slog.Logger {
 	}
 
 	return logger
+}
+
+func setupPrettySlog() *slog.Logger {
+	opts := slogpretty.PrettyHandlerOptions{
+		SlogOpts: &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+
+	handler := opts.NewPrettyHandler(os.Stdout)
+
+	return slog.New(handler)
 }
