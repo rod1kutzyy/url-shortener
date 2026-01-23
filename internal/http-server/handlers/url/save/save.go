@@ -21,11 +21,12 @@ type Request struct {
 
 type Response struct {
 	response.Response
-	Alias string `json:"alias"`
+	Alias string `json:"alias,omitempty"`
 }
 
 const aliasLength = 6
 
+//go:generate mockery --name=URLSaver
 type URLSaver interface {
 	SaveURL(urlToSave string, alias string) (int64, error)
 }

@@ -92,8 +92,8 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	return resURL, nil
 }
 
-func (s *Storage) DeleteURL(alias string) error {
-	const op = "storage.sqlite.DeleteURL"
+func (s *Storage) RemoveURL(alias string) error {
+	const op = "storage.sqlite.RemoveURL"
 
 	res, err := s.db.Exec("DELETE FROM url WHERE alias = ?;", alias)
 	if err != nil {
