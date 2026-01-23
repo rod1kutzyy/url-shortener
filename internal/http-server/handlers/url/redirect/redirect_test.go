@@ -18,30 +18,34 @@ import (
 
 func TestRedirectHandler(t *testing.T) {
 	tests := []struct {
-		name      string
-		alias     string
-		url       string
-		respError string
-		mockError error
+		name       string
+		alias      string
+		url        string
+		respError  string
+		mockError  error
+		wantStatus int
 	}{
 		{
-			name:      "Success",
-			alias:     "test_alias",
-			url:       "https://www.google.com",
-			respError: "",
-			mockError: nil,
+			name:       "Success",
+			alias:      "test_alias",
+			url:        "https://www.google.com",
+			respError:  "",
+			mockError:  nil,
+			wantStatus: http.StatusFound,
 		},
 		{
-			name:      "Not Found",
-			alias:     "test_alias_not_found",
-			respError: "not found",
-			mockError: storage.ErrURLNotFound,
+			name:       "Not Found",
+			alias:      "test_alias_not_found",
+			respError:  "not found",
+			mockError:  storage.ErrURLNotFound,
+			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:      "Internal Error",
-			alias:     "test_alias_internal_error",
-			respError: "internal error",
-			mockError: errors.New("unexpected error"),
+			name:       "Internal Error",
+			alias:      "test_alias_internal_error",
+			respError:  "internal error",
+			mockError:  errors.New("unexpected error"),
+			wantStatus: http.StatusInternalServerError,
 		},
 	}
 
@@ -68,6 +72,8 @@ func TestRedirectHandler(t *testing.T) {
 			resp, err := client.Get(ts.URL + "/" + tt.alias)
 			require.NoError(t, err)
 			defer resp.Body.Close()
+
+			require.Equal(t, tt.wantStatus, resp.StatusCode)
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)

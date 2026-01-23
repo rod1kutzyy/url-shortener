@@ -18,28 +18,32 @@ import (
 
 func TestRemoveHandler(t *testing.T) {
 	tests := []struct {
-		name      string
-		alias     string
-		respError string
-		mockError error
+		name       string
+		alias      string
+		respError  string
+		mockError  error
+		wantStatus int
 	}{
 		{
-			name:      "Success",
-			alias:     "test_alias",
-			respError: "",
-			mockError: nil,
+			name:       "Success",
+			alias:      "test_alias",
+			respError:  "",
+			mockError:  nil,
+			wantStatus: http.StatusOK,
 		},
 		{
-			name:      "Not Found",
-			alias:     "non_existent_alias",
-			respError: "not found",
-			mockError: storage.ErrURLNotFound,
+			name:       "Not Found",
+			alias:      "non_existent_alias",
+			respError:  "not found",
+			mockError:  storage.ErrURLNotFound,
+			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:      "Internal Error",
-			alias:     "test_alias_broken",
-			respError: "internal error",
-			mockError: errors.New("unexpected error"),
+			name:       "Internal Error",
+			alias:      "test_alias_broken",
+			respError:  "internal error",
+			mockError:  errors.New("unexpected error"),
+			wantStatus: http.StatusInternalServerError,
 		},
 	}
 
@@ -65,7 +69,7 @@ func TestRemoveHandler(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			require.Equal(t, http.StatusOK, resp.StatusCode)
+			require.Equal(t, tt.wantStatus, resp.StatusCode)
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)

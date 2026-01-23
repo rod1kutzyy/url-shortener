@@ -30,6 +30,7 @@ func New(logger *slog.Logger, urlRemover URLRemover) http.HandlerFunc {
 		alias := chi.URLParam(r, "alias")
 		if alias == "" {
 			logger.Info("alias is empty")
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("invalid request"))
 			return
 		}
@@ -38,10 +39,12 @@ func New(logger *slog.Logger, urlRemover URLRemover) http.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, storage.ErrURLNotFound) {
 				logger.Info("url not found", "alias", alias)
+				render.Status(r, http.StatusNotFound)
 				render.JSON(w, r, response.Error("not found"))
 				return
 			}
 			logger.Error("failed to remove url", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("internal error"))
 			return
 		}

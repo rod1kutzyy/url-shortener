@@ -12,46 +12,61 @@ import (
 	"github.com/rod1kutzyy/url-shortener/internal/http-server/handlers/url/save"
 	"github.com/rod1kutzyy/url-shortener/internal/http-server/handlers/url/save/mocks"
 	"github.com/rod1kutzyy/url-shortener/internal/lib/logger/handlers/slogdiscard"
+	"github.com/rod1kutzyy/url-shortener/internal/storage"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSaveHandler(t *testing.T) {
 	tests := []struct {
-		name      string
-		alias     string
-		url       string
-		respError string
-		mockError error
+		name       string
+		alias      string
+		url        string
+		respError  string
+		mockError  error
+		wantStatus int
 	}{
 		{
-			name:  "Success",
-			alias: "test_alias",
-			url:   "https://google.com",
+			name:       "Success",
+			alias:      "test_alias",
+			url:        "https://google.com",
+			wantStatus: http.StatusCreated,
 		},
 		{
-			name:  "Empty alias",
-			alias: "",
-			url:   "https://google.com",
+			name:       "Empty alias",
+			alias:      "",
+			url:        "https://google.com",
+			wantStatus: http.StatusCreated,
 		},
 		{
-			name:      "Empty url",
-			alias:     "some_alias",
-			url:       "",
-			respError: "field URL is required",
+			name:       "Empty url",
+			alias:      "some_alias",
+			url:        "",
+			respError:  "field URL is required",
+			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:      "Invalid URL",
-			alias:     "test_alias",
-			url:       "some invalid URL",
-			respError: "field URL is not a valid URL",
+			name:       "Invalid URL",
+			alias:      "test_alias",
+			url:        "some invalid URL",
+			respError:  "field URL is not a valid URL",
+			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:      "SaveURL Error",
-			alias:     "test_alias",
-			url:       "https://google.com",
-			respError: "failed to add url",
-			mockError: errors.New("unexpected error"),
+			name:       "SaveURL Error",
+			alias:      "test_alias",
+			url:        "https://google.com",
+			respError:  "failed to add url",
+			mockError:  errors.New("unexpected error"),
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name:       "Alias Exists",
+			alias:      "test_alias",
+			url:        "https://google.com",
+			respError:  "url already exists",
+			mockError:  storage.ErrURLExists,
+			wantStatus: http.StatusConflict,
 		},
 	}
 
@@ -76,7 +91,7 @@ func TestSaveHandler(t *testing.T) {
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
 
-			require.Equal(t, http.StatusOK, rr.Code)
+			require.Equal(t, tt.wantStatus, rr.Code)
 
 			body := rr.Body.String()
 
