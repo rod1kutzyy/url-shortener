@@ -29,7 +29,7 @@ func TestRemoveHandler(t *testing.T) {
 			alias:      "test_alias",
 			respError:  "",
 			mockError:  nil,
-			wantStatus: http.StatusOK,
+			wantStatus: http.StatusNoContent,
 		},
 		{
 			name:       "Not Found",
@@ -79,7 +79,7 @@ func TestRemoveHandler(t *testing.T) {
 			if tt.respError != "" {
 				assert.Contains(t, respBody, tt.respError)
 			} else {
-				assert.Contains(t, respBody, "OK")
+				assert.Empty(t, respBody)
 			}
 		})
 	}

@@ -51,6 +51,6 @@ func New(logger *slog.Logger, urlRemover URLRemover) http.HandlerFunc {
 
 		logger.Info("url removed", slog.String("alias", alias))
 
-		render.JSON(w, r, response.OK())
+		render.NoContent(w, r)
 	}
 }
