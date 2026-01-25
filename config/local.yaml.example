@@ -4,5 +4,6 @@ http_server:
   address: "host:port"
   timeout: 4s
   idle_timeout: 60s
+  shutdown_timeout: 10s
   user: "user"
   password: "password"
