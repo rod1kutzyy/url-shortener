@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -36,6 +35,11 @@ func main() {
 		logger.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
+	defer func() {
+		if err := storage.Close(); err != nil {
+			logger.Error("failed to close storage", sl.Err(err))
+		}
+	}()
 
 	router := chi.NewRouter()
 
@@ -69,7 +73,7 @@ func main() {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("failed to start server")
 		}
 	}()
@@ -79,7 +83,7 @@ func main() {
 	<-done
 	logger.Info("stopping server")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.HTTPServer.ShutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
